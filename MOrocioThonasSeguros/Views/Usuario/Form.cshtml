@@ -115,6 +115,33 @@
                         </div>
                     }
                 </div>
+                <div class="modal fade" id="modalPreposiciones" tabindex="-1">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+
+                            <div class="modal-header bg-info text-white">
+                                <h5 class="modal-title">
+                                    <i class="fas fa-filter"></i> Preposiciones detectadas
+                                </h5>
+                                <button type="button" class="close" data-dismiss="modal">
+                                    &times;
+                                </button>
+                            </div>
+
+                            <div class="modal-body">
+                                <ul id="listaPreposiciones" class="list-group"></ul>
+                            </div>
+
+                            <div class="modal-footer">
+                                <button class="btn btn-secondary" data-dismiss="modal">
+                                    Cerrar
+                                </button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -259,5 +286,24 @@
             // Eliminar duplicados y ordenar alfabéticamente
             return [...new Set(encontradas)].sort();
         }
+        function mostrarPreposiciones() {
+            const nombre = $('#txtNombreCompleto').val().trim();
+            const lista = $('#listaPreposiciones');
+
+            lista.empty();
+
+            const resultado = detectarPreposiciones(nombre);
+
+            if (resultado.length === 0) {
+                lista.append('<li class="list-group-item text-muted">No se detectaron preposiciones</li>');
+            } else {
+                resultado.forEach(p => {
+                    lista.append(`<li class="list-group-item">${p}</li>`);
+                });
+            }
+
+            $('#modalPreposiciones').modal('show');
+        }
+
     </script>
 }
