@@ -1,0 +1,263 @@
+﻿@model ML.Usuario
+@{
+    ViewBag.Title = "Form";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">
+                        <i class="fas fa-user-plus"></i> Registrar Usuario
+                    </h3>
+                </div>
+                <div class="card-body">
+                    @if (ViewBag.Message != null)
+                    {
+                        <div class="alert alert-info alert-dismissible fade show">
+                            <button type="button" class="close" data-dismiss="alert">&times;</button>
+                            <i class="fas fa-info-circle"></i> @ViewBag.Message
+                            @if (ViewBag.IdUsuario != null)
+                            {
+                                <br /><strong>ID Generado: @ViewBag.IdUsuario</strong>
+                            }
+                        </div>
+                    }
+
+                    @using (Html.BeginForm("Form", "Usuario", FormMethod.Post, new { @class = "needs-validation", id = "formUsuario" }))
+                    {
+                        @Html.AntiForgeryToken()
+                        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.NombreCompleto, new { @class = "control-label font-weight-bold" })
+                            @Html.TextBoxFor(model => model.NombreCompleto, new
+                            {
+                                @class = "form-control form-control-lg",
+                                placeholder = "Ingrese el nombre completo",
+                                id = "txtNombreCompleto",
+                                autocomplete = "off"
+                            })
+                            @Html.ValidationMessageFor(model => model.NombreCompleto, "", new { @class = "text-danger" })
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle"></i>
+                                Formato: <strong>Nombre ApellidoPaterno ApellidoMaterno</strong>
+                            </small>
+                            <div id="nombreNormalizado" class="mt-2" style="display:none;">
+                                <div class="alert alert-success py-2">
+                                    <strong>Nombre normalizado:</strong> <span id="nombreFormateado"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.FechaNacimiento, new { @class = "control-label font-weight-bold" })
+                            @Html.TextBoxFor(model => model.FechaNacimiento, "{0:yyyy-MM-dd}", new
+                            {
+                                @class = "form-control form-control-lg",
+                                type = "date",
+                                id = "txtFechaNacimiento"
+                            })
+                            @Html.ValidationMessageFor(model => model.FechaNacimiento, "", new { @class = "text-danger" })
+                        </div>
+
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.Email, new { @class = "control-label font-weight-bold" })
+                            @Html.TextBoxFor(model => model.Email, new
+                            {
+                                @class = "form-control form-control-lg",
+                                type = "email",
+                                autocomplete = "email"
+                            })
+                            @Html.ValidationMessageFor(model => model.Email, "", new { @class = "text-danger" })
+                        </div>
+
+                        <div class="form-group">
+                            @Html.LabelFor(model => model.Hobby, new { @class = "control-label font-weight-bold" })
+                            @Html.TextBoxFor(model => model.Hobby, new
+                            {
+                                @class = "form-control form-control-lg",
+                            })
+                        </div>
+
+                        <div class="form-group">
+                            <label class="control-label font-weight-bold">
+                                <i class="fas fa-id-card"></i> ID Usuario (Generado Automáticamente)
+                            </label>
+                            <input type="text" id="txtIdPreview" class="form-control form-control-lg" readonly
+                                   placeholder="Se generará automáticamente"
+                                   style="font-weight: bold; font-size: 20px; background-color: #e9ecef; color: #0056b3; text-align: center;" />
+                        </div>
+
+                        <hr />
+
+                        <div class="form-group text-center">
+                            <button type="button" class="btn btn-danger btn-lg px-5" onclick="finalizarFormulario()">
+                                <i class="fas fa-save"></i> Finalizar
+                            </button>
+
+                            <button type="button" class="btn btn-warning btn-lg px-5" onclick="reiniciarFormulario()">
+                                <i class="fas fa-undo"></i> Reiniciar
+                            </button>
+
+                            <a href="@Url.Action("GetAll", "Usuario")" class="btn btn-secondary btn-lg px-5">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+
+                            <button type="button"
+                                    class="btn btn-outline-info btn-sm mt-2"
+                                    onclick="mostrarPreposiciones()">
+                                <i class="fas fa-list"></i> Ver preposiciones detectadas
+                            </button>
+
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @Scripts.Render("~/bundles/jqueryval")
+    <script>
+        $(document).ready(function () {
+            // Función para normalizar el nombre
+            function normalizarNombre(nombre) {
+                if (!nombre) return '';
+                nombre = nombre.trim().replace(/\s+/g, ' ');
+                nombre = nombre.replace(/[^a-záéíóúñüA-ZÁÉÍÓÚÑÜ\s]/g, '');
+                nombre = nombre.toLowerCase().split(' ').map(function (word) {
+                    if (word.length > 0) {
+                        return word.charAt(0).toUpperCase() + word.slice(1);
+                    }
+                    return word;
+                }).join(' ');
+
+                return nombre;
+            }
+
+            // Normalizar nombre en tiempo real así como mostrarlo
+            $('#txtNombreCompleto').on('input', function () {
+                var nombreOriginal = $(this).val();
+                var nombreNormalizado = normalizarNombre(nombreOriginal);
+                if (nombreNormalizado && nombreNormalizado !== nombreOriginal) {
+                    $('#nombreFormateado').text(nombreNormalizado);
+                    $('#nombreNormalizado').slideDown();
+                } else {
+                    $('#nombreNormalizado').slideUp();
+                }
+            });
+
+            $('#txtNombreCompleto').on('blur', function () {
+                var nombreNormalizado = normalizarNombre($(this).val());
+                $(this).val(nombreNormalizado);
+                $('#nombreNormalizado').slideUp();
+            });
+
+            $('#txtNombreCompleto, #txtFechaNacimiento').on('change keyup', function () {
+                generarIdPreview();
+            });
+
+            function generarIdPreview() {
+                var nombre = normalizarNombre($('#txtNombreCompleto').val().trim());
+                var fecha = $('#txtFechaNacimiento').val();
+
+                if (nombre && fecha) {
+                    var partes = nombre.split(' ');
+
+                    // Validar que tenga al menos 3 partes
+                    if (partes.length >= 3) {
+                        try {
+                            function removerAcentos(str) {
+                                return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                            }
+
+                            var nombreParte = removerAcentos(partes[0]);
+                            var apellidoPaterno = removerAcentos(partes[1]);
+                            var apellidoMaterno = removerAcentos(partes[2]);
+
+                            var ap1 = apellidoPaterno.substring(0, 2).toUpperCase();
+                            var ap2 = apellidoMaterno.substring(0, 1).toUpperCase();
+                            var nom = nombreParte.substring(0, 1).toUpperCase();
+
+                            var fechaObj = new Date(fecha);
+                            var dd = ('0' + fechaObj.getDate()).slice(-2);
+                            var mm = ('0' + (fechaObj.getMonth() + 1)).slice(-2);
+                            var yy = fechaObj.getFullYear().toString().slice(-2);
+
+                            var idGenerado = ap1 + ap2 + nom + dd + mm + yy;
+                            $('#txtIdPreview').val(idGenerado);
+                            $('#txtIdPreview').removeClass('text-danger').addClass('text-primary');
+                        } catch (e) {
+                            $('#txtIdPreview').val('Error al generar ID');
+                            $('#txtIdPreview').removeClass('text-primary').addClass('text-danger');
+                        }
+                    } else {
+                        $('#txtIdPreview').val('Ingrese nombre completo (3 partes)');
+                        $('#txtIdPreview').removeClass('text-primary').addClass('text-danger');
+                    }
+                } else {
+                    $('#txtIdPreview').val('');
+                }
+            }
+
+            $('#formUsuario').on('submit', function (e) {
+                var nombre = $('#txtNombreCompleto').val().trim();
+                var partes = nombre.split(' ');
+
+                if (partes.length < 3) {
+                    e.preventDefault();
+                    alert('El nombre completo debe incluir: Nombre, Apellido Paterno y Apellido Materno');
+                    $('#txtNombreCompleto').focus();
+                    return false;
+                }
+                $('#txtNombreCompleto').val(normalizarNombre(nombre));
+            });
+        });
+
+
+        //Esto es para la ultima características de los botones
+            function finalizarFormulario() {
+            const form = document.getElementById("formUsuario");
+            const inputs = form.querySelectorAll("input, select, textarea");
+
+            inputs.forEach(input => {
+                if (input.type !== "hidden") {
+                input.disabled = true;
+                }
+            });
+        }
+
+            function reiniciarFormulario() {
+            const form = document.getElementById("formUsuario");
+            const inputs = form.querySelectorAll("input, select, textarea");
+
+            inputs.forEach(input => {
+                input.disabled = false;
+            });
+            form.submit();
+        }
+
+
+        //eSTO  ES PARA LAS PREPOSICIONES
+        const preposiciones = [
+            "de", "del", "la", "las", "los", "y", "san", "santa"
+        ];
+
+        function detectarPreposiciones(nombre) {
+            if (!nombre) return [];
+
+            const palabras = nombre.toLowerCase().split(' ');
+
+            const encontradas = palabras.filter(p =>
+                preposiciones.includes(p)
+            );
+
+            // Eliminar duplicados y ordenar alfabéticamente
+            return [...new Set(encontradas)].sort();
+        }
+    </script>
+}

@@ -1,0 +1,198 @@
+﻿@model ML.CP
+@{
+    ViewBag.Title = "ConsultarCP";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-black text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-map-marker-alt me-2"></i>Consultar Código Postal
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="txtCP">Código Postal:</label>
+                            <div class="input-group">
+                                <input type="text"
+                                       id="txtCP"
+                                       class="form-control"
+                                       placeholder="Ingrese 5 dígitos"
+                                       maxlength="5"
+                                       pattern="[0-9]*" />
+                                <div class="input-group-append">
+                                    <button type="button"
+                                            id="btnConsultar"
+                                            class="btn btn-primary"
+                                            disabled>
+                                        <i class="fas fa-search"></i> Consultar
+                                    </button>
+                                </div>
+                            </div>
+                            <small class="form-text text-muted">Ingrese un código postal de 5 dígitos</small>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="txtEstado">Estado:</label>
+                            <input type="text"
+                                   id="txtEstado"
+                                   class="form-control"
+                                   readonly
+                                   placeholder="Se llenará automáticamente" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="txtCodEstado">Código del Estado:</label>
+                            <input type="text"
+                                   id="txtCodEstado"
+                                   class="form-control"
+                                   readonly
+                                   placeholder="Se llenará automáticamente" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="txtMunicipio">Municipio:</label>
+                            <input type="text"
+                                   id="txtMunicipio"
+                                   class="form-control"
+                                   readonly
+                                   placeholder="Se llenará automáticamente" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="ddlColonias">Colonia:</label>
+                            <select id="ddlColonias" class="form-control" disabled>
+                                <option value="">Seleccione una colonia</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="txtCodigoColonia">Código de Colonia:</label>
+                            <input type="text"
+                                   id="txtCodigoColonia"
+                                   class="form-control"
+                                   readonly
+                                   placeholder="Seleccione una colonia primero" />
+                        </div>
+                        <div id="mensajeError" class="alert alert-danger" style="display:none;"></div>
+                        <div id="mensajeExito" class="alert alert-success" style="display:none;"></div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // elimina cualquier carácter que no sea un dígito 
+            $('#txtCP').on('input', function () {
+                this.value = this.value.replace(/[^0-9]/g, '');
+                validarBotonConsulta();
+            });
+
+            // Validar cuando se escribe en el campo
+            $('#txtCP').on('keyup', function (e) {
+                validarBotonConsulta();
+
+                // Permitir consultar con Enter si el CP es válido
+                if (e.which === 13 && $(this).val().length === 5) {
+                    $('#btnConsultar').click();
+                }
+            });
+
+            // Evento del botón consultar
+            $('#btnConsultar').on('click', function () {
+                var cp = $('#txtCP').val();
+                if (cp.length === 5) {
+                    consultarCP(cp);
+                }
+            });
+
+            $('#ddlColonias').on('change', function () {
+                var codigoColonia = $(this).find('option:selected').data('codigo');
+
+                if (codigoColonia) {
+                    $('#txtCodigoColonia').val(codigoColonia);
+                } else {
+                    $('#txtCodigoColonia').val('');
+                }
+            });
+
+            function validarBotonConsulta() {
+                var cp = $('#txtCP').val();
+
+                if (cp.length === 5) {
+                    $('#btnConsultar').prop('disabled', false);
+                } else {
+                    $('#btnConsultar').prop('disabled', true);
+                    limpiarCampos();
+                }
+            }
+
+            // Función para consultar el CP
+            function consultarCP(cp) {
+                $('#btnConsultar').prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Consultando...');
+                $('#ddlColonias').prop('disabled', true);
+                $('#mensajeError').hide();
+                $('#mensajeExito').hide();
+
+                $.ajax({
+                    url: '@Url.Action("ConsultarCP", "ConsultarCP")',
+                    type: 'POST',
+                    data: { CP: cp },
+                    success: function (response) {
+                        if (response.success) {
+                            $('#txtEstado').val(response.data.DescEstado);
+                            $('#txtCodEstado').val(response.data.CodEstado);
+                            $('#txtMunicipio').val(response.data.DescMunicipio);
+                            // Llenar dropdown de colonias
+                            var ddl = $('#ddlColonias');
+                            ddl.empty();
+                            ddl.append('<option value="">Seleccione una colonia</option>');
+
+                            if (response.data.results && response.data.results.length > 0) {
+                                $.each(response.data.results, function (index, item) {
+                                    ddl.append($('<option></option>')
+                                        .val(item.ID)
+                                        .data('codigo', item.CodigoColonia)
+                                        .text(item.DescripcionColonia));
+                                });
+                                ddl.prop('disabled', false);
+                                $('#mensajeExito').text('Código postal encontrado exitosamente').show();
+                            } else {
+                                $('#mensajeError').text('No se encontraron colonias para este código postal').show();
+                            }
+                        } else {
+                            limpiarCampos();
+                            $('#mensajeError').text(response.message || 'Error al consultar el código postal').show();
+                        }
+                        $('#btnConsultar').prop('disabled', false).html('<i class="fas fa-search"></i> Consultar');
+                    },
+                    error: function (xhr, status, error) {
+                        limpiarCampos();
+                        $('#mensajeError').text('Error al consultar el servicio: ' + error).show();
+                        $('#btnConsultar').prop('disabled', false).html('<i class="fas fa-search"></i> Consultar');
+                    }
+                });
+            }
+
+            function limpiarCampos() {
+                $('#txtEstado').val('');
+                $('#txtCodEstado').val('');
+                $('#txtMunicipio').val('');
+                $('#txtCodigoColonia').val('');
+                $('#ddlColonias').empty().append('<option value="">Seleccione una colonia</option>').prop('disabled', true);
+                $('#mensajeError').hide();
+                $('#mensajeExito').hide();
+            }
+        });
+    </script>
+}
+
